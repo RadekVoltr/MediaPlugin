@@ -23,6 +23,8 @@ using System.Linq;
 
 using UIKit;
 using Foundation;
+using Plugin.Permissions.Abstractions;
+using Plugin.Permissions;
 
 namespace Plugin.Media
 {
@@ -90,12 +92,15 @@ namespace Plugin.Media
         /// Picks a photo from the default gallery
         /// </summary>
         /// <returns>Media file or null if canceled</returns>
-        public Task<MediaFile> PickPhotoAsync(PickMediaOptions options = null)
+        public async Task<MediaFile> PickPhotoAsync(PickMediaOptions options = null)
         {
             if (!IsPickPhotoSupported)
                 throw new NotSupportedException();
 
-            CheckPhotoUsageDescription();
+            if (await RequestPermissionAsync(MediaPermission.PhotoAlbum) != PermissionStatus.Granted)
+            {
+                return null;
+            }
 
             var cameraOptions = new StoreCameraMediaOptions
             {
@@ -103,7 +108,7 @@ namespace Plugin.Media
                 CompressionQuality = options?.CompressionQuality ?? 100
             };
 
-            return GetMediaAsync(UIImagePickerControllerSourceType.PhotoLibrary, TypeImage, cameraOptions);
+            return await GetMediaAsync(UIImagePickerControllerSourceType.PhotoLibrary, TypeImage, cameraOptions);
         }
         /// <summary>
         /// 
@@ -128,18 +133,30 @@ namespace Plugin.Media
         /// </summary>
         /// <param name="options">Camera Media Options</param>
         /// <returns>Media file of photo or null if canceled</returns>
-        public Task<MediaFile> TakePhotoAsync(StoreCameraMediaOptions options)
+        public async Task<MediaFile> TakePhotoAsync(StoreCameraMediaOptions options)
         {
             if (!IsTakePhotoSupported)
                 throw new NotSupportedException();
             if (!IsCameraAvailable)
                 throw new NotSupportedException();
 
-            CheckCameraUsageDescription();
-
+            if (await RequestPermissionAsync(MediaPermission.Camera) != PermissionStatus.Granted)
+            {
+                return null;
+            }
+            
             VerifyCameraOptions(options);
 
-            return GetMediaAsync(UIImagePickerControllerSourceType.Camera, TypeImage, options);
+            if(options?.SaveToAlbum ?? false)
+            {
+                if (await RequestPermissionAsync(MediaPermission.PhotoAlbum) != PermissionStatus.Granted)
+                {
+                    System.Diagnostics.Debug.WriteLine("Photo album rejected, so disabling save to album.");
+                    options.SaveToAlbum = false;
+                }
+            }
+
+            return await GetMediaAsync(UIImagePickerControllerSourceType.Camera, TypeImage, options);
         }
         /// <summary>
         /// 
@@ -158,15 +175,18 @@ namespace Plugin.Media
         /// Picks a video from the default gallery
         /// </summary>
         /// <returns>Media file of video or null if canceled</returns>
-        public Task<MediaFile> PickVideoAsync()
+        public async Task<MediaFile> PickVideoAsync()
         {
             if (!IsPickVideoSupported)
                 throw new NotSupportedException();
 
+            if (await RequestPermissionAsync(MediaPermission.PhotoAlbum) != PermissionStatus.Granted)
+            {
+                return null;
+            }
+            
 
-            CheckPhotoUsageDescription();
-
-            return GetMediaAsync(UIImagePickerControllerSourceType.PhotoLibrary, TypeMovie);
+            return await GetMediaAsync(UIImagePickerControllerSourceType.PhotoLibrary, TypeMovie);
         }
         /// <summary>
         /// 
@@ -191,18 +211,30 @@ namespace Plugin.Media
         /// </summary>
         /// <param name="options">Video Media Options</param>
         /// <returns>Media file of new video or null if canceled</returns>
-        public Task<MediaFile> TakeVideoAsync(StoreVideoOptions options)
+        public async Task<MediaFile> TakeVideoAsync(StoreVideoOptions options)
         {
             if (!IsTakeVideoSupported)
                 throw new NotSupportedException();
             if (!IsCameraAvailable)
                 throw new NotSupportedException();
 
-            CheckCameraUsageDescription();
+            if (await RequestPermissionAsync(MediaPermission.Camera) != PermissionStatus.Granted)
+            {
+                return null;
+            }
 
             VerifyCameraOptions(options);
 
-            return GetMediaAsync(UIImagePickerControllerSourceType.Camera, TypeMovie, options);
+            if (options?.SaveToAlbum ?? false)
+            {
+                if (await RequestPermissionAsync(MediaPermission.PhotoAlbum) != PermissionStatus.Granted)
+                {
+                    System.Diagnostics.Debug.WriteLine("Photo album rejected, so disabling save to album.");
+                    options.SaveToAlbum = false;
+                }
+            }
+
+            return await GetMediaAsync(UIImagePickerControllerSourceType.Camera, TypeMovie, options);
         }
 
         private UIPopoverController popover;
@@ -363,6 +395,55 @@ namespace Plugin.Media
                 if (!info.ContainsKey(new NSString("NSPhotoLibraryUsageDescription")))
                     throw new UnauthorizedAccessException("On iOS 10 and higher you must set NSPhotoLibraryUsageDescription in your Info.plist file to enable Authorization Requests for Photo Library access!");
             }
+        }
+
+        public Task<PermissionStatus> CheckPermissionAsync(MediaPermission permission)
+        {
+            var toCheck = GetPluginPermission(permission);
+
+            return CrossPermissions.Current.CheckPermissionStatusAsync(toCheck);
+        }
+
+        private Permission GetPluginPermission(MediaPermission permission)
+        {
+            var toCheck = Permission.Camera;
+            switch (permission)
+            {
+                case MediaPermission.Camera:
+                    toCheck = Permission.Camera;
+                    CheckCameraUsageDescription();
+                    break;
+                case MediaPermission.PhotoAlbum:
+                    toCheck = Permission.Photos;
+                    CheckPhotoUsageDescription();
+                    break;
+            }
+
+            return toCheck;
+        }
+
+        public async Task<PermissionStatus> RequestPermissionAsync(MediaPermission permission)
+        {
+            var toCheck = GetPluginPermission(permission);
+
+            var status = await CrossPermissions.Current.CheckPermissionStatusAsync(toCheck);
+            if (status != PermissionStatus.Granted)
+            {
+                Console.WriteLine($"Does not have {toCheck} permission granted, requesting.");
+                var results = await CrossPermissions.Current.RequestPermissionsAsync(toCheck);
+                if (results.ContainsKey(toCheck))
+                {
+                    status = results[toCheck];
+                    Console.WriteLine($"{toCheck} permission {status}.");
+                }
+                else
+                {
+                    status = PermissionStatus.Unknown;
+                    Console.WriteLine($"Unable to determine status for {toCheck} permission: {status}.");
+                }
+            }
+
+            return status;
         }
     }
 }

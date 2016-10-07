@@ -28,7 +28,7 @@ using Windows.Storage.Pickers;
 using System.Collections.Generic;
 using Windows.Storage;
 using Windows.ApplicationModel.Activation;
-
+using Plugin.Permissions.Abstractions;
 
 namespace Plugin.Media
 {
@@ -228,6 +228,16 @@ namespace Plugin.Media
 
                     break;
             }
+        }
+
+        public Task<PermissionStatus> CheckPermissionAsync(MediaPermission permission)
+        {
+            return Task.FromResult(PermissionStatus.Granted);
+        }
+
+        public Task<PermissionStatus> RequestPermissionAsync(MediaPermission permission)
+        {
+            return Task.FromResult(PermissionStatus.Granted);
         }
     }
 }

@@ -4,6 +4,7 @@ using Android.OS;
 using Android.Graphics;
 using Android.Content.PM;
 using System;
+using Plugin.Media;
 
 namespace MediaAndroidTest
 {
@@ -40,8 +41,12 @@ namespace MediaAndroidTest
             {
                 try
                 {
+                    var status = await CrossMedia.Current.CheckPermissionAsync(Plugin.Media.Abstractions.MediaPermission.PhotoAlbum);
+                    if (status != Plugin.Permissions.Abstractions.PermissionStatus.Granted)
+                        status = await CrossMedia.Current.RequestPermissionAsync(Plugin.Media.Abstractions.MediaPermission.PhotoAlbum);
+
                     var size = switchSize.Checked ? Plugin.Media.Abstractions.PhotoSize.Medium : Plugin.Media.Abstractions.PhotoSize.Full;
-                    var media = new Plugin.Media.MediaImplementation();
+                    var media = new MediaImplementation();
                     var file = await Plugin.Media.CrossMedia.Current.TakePhotoAsync(new Plugin.Media.Abstractions.StoreCameraMediaOptions
                     {
                         Directory = "Sample",
@@ -69,7 +74,7 @@ namespace MediaAndroidTest
             var pick = FindViewById<Button>(Resource.Id.button1);
             pick.Click += async (sender, args) =>
               {
-                  var file = await Plugin.Media.CrossMedia.Current.PickPhotoAsync(new Plugin.Media.Abstractions.PickMediaOptions
+                  var file = await CrossMedia.Current.PickPhotoAsync(new Plugin.Media.Abstractions.PickMediaOptions
                   {
                       PhotoSize = switchSize.Checked ? Plugin.Media.Abstractions.PhotoSize.Medium : Plugin.Media.Abstractions.PhotoSize.Full
                   });

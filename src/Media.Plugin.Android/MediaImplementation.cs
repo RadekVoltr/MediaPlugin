@@ -27,6 +27,7 @@ using Plugin.Permissions;
 using Android.Media;
 using Android.Graphics;
 using System.Text.RegularExpressions;
+using Plugin.Permissions.Abstractions;
 
 namespace Plugin.Media
 {
@@ -119,7 +120,7 @@ namespace Plugin.Media
         /// <returns>Media file or null if canceled</returns>
         public async Task<MediaFile> PickPhotoAsync(PickMediaOptions options = null)
         {
-            if (!(await RequestStoragePermission()))
+            if (await RequestPermissionAsync(MediaPermission.PhotoAlbum) != PermissionStatus.Granted)
             {
                 return null;
             }
@@ -155,7 +156,7 @@ namespace Plugin.Media
             if (!IsCameraAvailable)
                 throw new NotSupportedException();
 
-            if (!(await RequestStoragePermission()))
+            if (await RequestPermissionAsync(MediaPermission.PhotoAlbum) != PermissionStatus.Granted)
             {
                 return null;
             }
@@ -237,7 +238,7 @@ namespace Plugin.Media
         public async Task<MediaFile> PickVideoAsync()
         {
 
-            if (!(await RequestStoragePermission()))
+            if (await RequestPermissionAsync(MediaPermission.PhotoAlbum) != PermissionStatus.Granted)
             {
                 return null;
             }
@@ -255,7 +256,7 @@ namespace Plugin.Media
             if (!IsCameraAvailable)
                 throw new NotSupportedException();
 
-            if (!(await RequestStoragePermission()))
+            if (await RequestPermissionAsync(MediaPermission.PhotoAlbum) != PermissionStatus.Granted)
             {
                 return null;
             }
@@ -270,27 +271,7 @@ namespace Plugin.Media
         private TaskCompletionSource<MediaFile> completionSource;
 
 
-        async Task<bool> RequestStoragePermission()
-        {
-            //We always have permission on anything lower than marshmallow.
-            if ((int)Build.VERSION.SdkInt < 23)
-                return true;
-
-            var status = await CrossPermissions.Current.CheckPermissionStatusAsync(Permissions.Abstractions.Permission.Storage);
-            if (status != Permissions.Abstractions.PermissionStatus.Granted)
-            {
-                Console.WriteLine("Does not have storage permission granted, requesting.");
-                var results = await CrossPermissions.Current.RequestPermissionsAsync(Permissions.Abstractions.Permission.Storage);
-                if (results.ContainsKey(Permissions.Abstractions.Permission.Storage) &&
-                    results[Permissions.Abstractions.Permission.Storage] != Permissions.Abstractions.PermissionStatus.Granted)
-                {
-                    Console.WriteLine("Storage permission Denied.");
-                    return false;
-                }
-            }
-
-            return true;
-        }
+      
 
 
         const string IllegalCharacters = "[|\\?*<\":>/']";
@@ -664,7 +645,38 @@ namespace Plugin.Media
             }
         }
 
+        public Task<PermissionStatus> CheckPermissionAsync(MediaPermission permission)
+        {
+            if ((int)Build.VERSION.SdkInt < 23)
+                return Task.FromResult(PermissionStatus.Granted);
+
+            return CrossPermissions.Current.CheckPermissionStatusAsync(Permissions.Abstractions.Permission.Storage);
+        }
+
+        public async Task<PermissionStatus> RequestPermissionAsync(MediaPermission permission)
+        {
+            if ((int)Build.VERSION.SdkInt < 23)
+                return PermissionStatus.Granted;
+
+            var status = await CrossPermissions.Current.CheckPermissionStatusAsync(Permissions.Abstractions.Permission.Storage);
+            if (status != PermissionStatus.Granted)
+            {
+                Console.WriteLine("Does not have storage permission granted, requesting.");
+                var results = await CrossPermissions.Current.RequestPermissionsAsync(Permissions.Abstractions.Permission.Storage);
+                if (results.ContainsKey(Permissions.Abstractions.Permission.Storage))
+                {
+                    status = results[Permissions.Abstractions.Permission.Storage];
+                    Console.WriteLine($"Storage permission {status}.");
+                }
+                else
+                {
+                    status = PermissionStatus.Unknown;
+                    Console.WriteLine($"Unable to determine status for storage permission: {status}.");
+                }
+            }
+
+            return status;
+        }
+        
     }
-
-
 }

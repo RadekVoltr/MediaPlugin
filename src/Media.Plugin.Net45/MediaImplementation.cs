@@ -1,4 +1,5 @@
 ﻿using Plugin.Media.Abstractions;
+using Plugin.Permissions.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -112,6 +113,16 @@ namespace Plugin.Media
         public Task<MediaFile> TakeVideoAsync(StoreVideoOptions options)
         {
             return Task.FromResult<MediaFile>(null);
+        }
+
+        public Task<PermissionStatus> CheckPermissionAsync(MediaPermission permission)
+        {
+            return Task.FromResult(PermissionStatus.Granted);
+        }
+
+        public Task<PermissionStatus> RequestPermissionAsync(MediaPermission permission)
+        {
+            return Task.FromResult(PermissionStatus.Granted);
         }
     }
 }

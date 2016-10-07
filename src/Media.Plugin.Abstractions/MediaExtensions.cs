@@ -32,15 +32,10 @@ namespace Plugin.Media.Abstractions
         {
             if (self == null)
                 throw new ArgumentNullException("options");
-            //if (!Enum.IsDefined (typeof(MediaFileStoreLocation), options.Location))
-            //    throw new ArgumentException ("options.Location is not a member of MediaFileStoreLocation");
-            //if (options.Location == MediaFileStoreLocation.Local)
-            //{
-            //if (String.IsNullOrWhiteSpace (options.Directory))
-            //	throw new ArgumentNullException ("options", "For local storage, options.Directory must be set");
+
             if (Path.IsPathRooted(self.Directory))
                 throw new ArgumentException("options.Directory must be a relative path", "options");
-            //}
+
         }
         /// <summary>
         /// 
@@ -53,7 +48,7 @@ namespace Plugin.Media.Abstractions
             bool isPhoto = !(self is StoreVideoOptions);
 
             string name = (self != null) ? self.Name : null;
-            if (String.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(name))
             {
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 if (isPhoto)
@@ -63,7 +58,7 @@ namespace Plugin.Media.Abstractions
             }
 
             string ext = Path.GetExtension(name);
-            if (ext == String.Empty)
+            if (ext == string.Empty)
                 ext = ((isPhoto) ? ".jpg" : ".mp4");
 
             name = Path.GetFileNameWithoutExtension(name);

@@ -9,6 +9,7 @@ using Windows.Storage.Pickers;
 
 using Plugin.Media.Abstractions;
 using System.Diagnostics;
+using Plugin.Permissions.Abstractions;
 
 namespace Plugin.Media
 {
@@ -335,6 +336,16 @@ namespace Plugin.Media
                 devices.Add(device.Id);
                 isCameraAvailable = true;
             }
+        }
+
+        public Task<PermissionStatus> CheckPermissionAsync(MediaPermission permission)
+        {
+            return Task.FromResult(PermissionStatus.Granted);
+        }
+
+        public Task<PermissionStatus> RequestPermissionAsync(MediaPermission permission)
+        {
+            return Task.FromResult(PermissionStatus.Granted);
         }
     }
 }

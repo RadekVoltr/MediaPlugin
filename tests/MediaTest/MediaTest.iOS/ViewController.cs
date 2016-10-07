@@ -25,6 +25,11 @@ namespace MediaTest.iOS
 
             TakePhoto.TouchUpInside += async (sender, args) =>
             {
+                var status = await CrossMedia.Current.CheckPermissionAsync(Plugin.Media.Abstractions.MediaPermission.PhotoAlbum);
+                if (status != Plugin.Permissions.Abstractions.PermissionStatus.Granted)
+                    status = await CrossMedia.Current.RequestPermissionAsync(Plugin.Media.Abstractions.MediaPermission.PhotoAlbum);
+
+
                 Func<object> func = CreateOverlay;
                 var test = await CrossMedia.Current.TakePhotoAsync(new Plugin.Media.Abstractions.StoreCameraMediaOptions
                 {

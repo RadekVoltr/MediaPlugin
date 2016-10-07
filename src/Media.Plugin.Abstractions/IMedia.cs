@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Plugin.Permissions.Abstractions;
 
 namespace Plugin.Media.Abstractions
 {
@@ -13,6 +14,21 @@ namespace Plugin.Media.Abstractions
         /// </summary>
         /// <returns></returns>
         Task<bool> Initialize();
+
+        /// <summary>
+        /// Check a permission for camera and photo gallery
+        /// </summary>
+        /// <param name="permission">Permission to check</param>
+        /// <returns></returns>
+        Task<PermissionStatus> CheckPermissionAsync(MediaPermission permission);
+
+        /// <summary>
+        /// Request permission for camera and photo gallery
+        /// </summary>
+        /// <param name="permission"></param>
+        /// <returns></returns>
+        Task<PermissionStatus> RequestPermissionAsync(MediaPermission permission);
+
         /// <summary>
         /// Gets if a camera is available on the device
         /// </summary>
